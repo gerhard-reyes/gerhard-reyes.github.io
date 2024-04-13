@@ -266,6 +266,13 @@ a.navbar-item.is-active {
                 background-repeat: no-repeat;
                 background-size: cover;
             }
+            // Hides image if there's none to display
+            .image[style="background-image: url();"] {
+                display: none;
+                // Alternatively, you could add a placeholder image by 
+                // commenting out the above line and uncommenting the line below:
+                // background-image: url(../images/1280x720\ Placeholder.png) !important;
+            }
         }
     }
 
@@ -276,15 +283,29 @@ a.navbar-item.is-active {
         transform: scale(0.95);
         transition: all 0.5s ease;
         margin-bottom: 0.5rem !important;
-        display: inline-table;
+        display: flex;
+        flex-direction: column;
         &:hover {
             transform: scale(0.975);
+        }
+        > a {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
     }
     .card {
         transition: all 0.25s ease;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
         &:hover {
             background-color: rgba($color: #000000, $alpha: 0.90)!important;
+        }
+        > div {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
         }
     }
 }

@@ -1,50 +1,51 @@
----
-title: What is Jekyll? How to use it?
-layout: post
-post-image: "https://raw.githubusercontent.com/thedevslot/WhatATheme/master/assets/images/What%20is%20Jekyll%20and%20How%20to%20use%20it.png?token=AHMQUELVG36IDSA4SZEZ5P26Z64IW"
-description: Jekyll is a static site generator. You give it text written in your favorite
-  markup language and it uses layouts to create a static website.
-tags:
-- jekyll
-- informative
-- technology
----
+#### 0414周报
 
-Jekyll is a simple, blog-aware, static site generator perfect for personal, project, or organization sites. Think of it like a file-based CMS, without all the complexity. Jekyll takes your content, renders Markdown and Liquid templates, and spits out a complete, static website ready to be served by Apache, Nginx or another web server. Jekyll is the engine behind GitHub Pages, which you can use to host sites right from your GitHub repositories and if you don't know what GitHub Pages are you can visit on click [here](https://help.github.com/en/github/working-with-github-pages/about-github-pages){:target="blank"} or [here](https://pages.github.com/){:target="blank"}
-###### Source : [`Jekyll Docs`](https://jekyllrb.com/docs/)
+本周主要工作：
 
-> ### To know more and get started with Jekyll you can click [here](https://jekyllrb.com/){:targe="_blank"}
-	
-# Installation
-**Jekyll is a Ruby Gem that can be installed on most systems.**
-### Requirements
-* [Ruby](https://www.ruby-lang.org/en/downloads/){:target="_blank"} version 2.5.0 or above, including all development headers (ruby version can be checked by running ruby -v)
-* [Ruby Gems](https://rubygems.org/pages/download){:target="_blank"} (which you can check by running gem -v)
-* [GCC](https://gcc.gnu.org/install/){:target="_blank"} and [Make](https://www.gnu.org/software/make/){:target="_blank"}
+1. 过滤缺失路段数据集中缺失道路没有相应轨迹热力的样本。
+2. 重新训练模型，将测试集分为简单场景和复杂场景进行测试，对比缺失路段预测精度。
+3. 分析简单场景中的badcase得出改进方向。
 
-### After Installing the Requirements you can follow these guides:
-**For detailed install instructions have a look at the guide for your operating system.**
-* [macOS](https://jekyllrb.com/docs/installation/macos/){:target="_blank"}
-* [Ubuntu](https://jekyllrb.com/docs/installation/ubuntu/){:target="_blank"}
-* [Other Linux Distros](https://jekyllrb.com/docs/installation/other-linux/){:target="_blank"}
-* [Windows](https://jekyllrb.com/docs/installation/windows/){:target="_blank"}
+详细内容：
 
-### Creating a new Jekyll site
-**We can create a new Jekyll site just by a simple command:**<br>
-> # `jekyll new my-site`
+1.过滤缺失路段数据集中缺失道路缺少相应轨迹热力的样本
 
-Jekyll will create a new directory named as `my-site` which is customizable (i.e., you can change the name from `my-site` to anything you want for example `jekyll new brutus`).
+ 之前在训练relationformer模型的训练集中有很多缺失路段没有相应轨迹热力的样本，如下图是无锡市某个区域示例，左图是路网图像，紫色路段代表缺失路段，右图是此区域的轨迹热力，红色圈中明显缺少对应轨迹热力。
 
-### Changing into the Directory
-**We have to go inside the directory:**<br>
-> # `cd my-site`
+<img src="C:/Users/86135/AppData/Roaming/Typora/typora-user-images/image-20240414110447666.png" alt="image-20240414110447666" style="zoom: 33%;" />
 
-Again, `my-site` is just a random name which is customizable.
+由于模型是根据轨迹推断出缺失路段，因此上述情况会影响到模型的训练和模型的预测准确率。因此对生成数据集加入此类样本的过滤机制，具体是在选择缺失路段时会在候选路段上等间隔生成若干采样点，若轨迹热力图像相应位置的采样点附近有轨迹热力（表示此位置有轨迹热力）保留此样本，否则舍弃此样本。
 
-### Building the site and making it available on a local server
-> # `bundle exec jekyll serve`
+2.重新训练模型，将测试集分为简单场景和复杂场景进行测试，对比缺失路段预测精度
 
-### Browsing your Jekyll site
-> # Browse to [`http://localhost:4000/`](http://localhost:4000/){:target="_blank"}
+加入上述过滤机制后共生成10000张训练样本，300张测试样本；使用训练集输入relationformer模型完成训练；后面将300张测试样本划分成120张简单场景，和180张复杂场景，使用训练后的模型测试预测准确率，结果如下表格所示。其中对于简单场景可以做到75%以上的准确率和召回，对于复杂场景则准确率召回略低。
 
-###### On encountering any problem while building and serving your Jekyll site you can consider visiting to the [troubleshooting](https://jekyllrb.com/docs/troubleshooting/#configuration-problems){:target="_blank"} page
+|        | 简单场景顶点 | 简单场景路段 | 复杂场景顶点 | 复杂场景路段 |
+| ------ | ------------ | ------------ | ------------ | ------------ |
+| 准确率 | 0.813        | 0.758        | 0.669        | 0.561        |
+| 召回率 | 0.879        | 0.807        | 0.780        | 0.748        |
+
+简单场景复杂场景goodcase展示。
+
+如下是两个简单场景，蓝色线段表示缺失路段真值，红色路段表示模型预测结果，可以发现此处简单直线缺失路段场景模型预测效果较好，后一个样本表示对于这类曲线道路，模型也能较好的预测路段的大致形状。
+
+![image-20240414114408821](C:/Users/86135/AppData/Roaming/Typora/typora-user-images/image-20240414114408821.png)
+
+如下是一个复杂场景预测结果（缺失路段附近有平行道路），此处模型预测效果也较好，红色预测路段几乎完全吻合了蓝色路段真值，从轨迹热力中可以发现虽然此处是平行道路的复杂场景，但是缺失路段的轨迹热力和它下方的平行路段的轨迹热力是明显分开的，因此这类样本的预测效果仍然较好。
+
+<img src="C:/Users/86135/AppData/Roaming/Typora/typora-user-images/image-20240414115024257.png" alt="image-20240414115024257" style="zoom: 50%;" />
+
+3.分析分析简单场景中的badcase得出改进方案。
+
+对120个简单场景中的badcase进行分析，发现有较多badcase存在轨迹噪声（轨迹点偏移）影响推断的情况，如下四个示例，轨迹热力在路段周围存在漂移（下图中红色圈中的轨迹噪声），使得推断结果发生明显的偏差。
+
+![image-20240414125416173](C:/Users/86135/AppData/Roaming/Typora/typora-user-images/image-20240414125416173.png)
+
+![image-20240414214609591](C:/Users/86135/AppData/Roaming/Typora/typora-user-images/image-20240414214609591.png)
+
+因此后续应该对轨迹数据进行偏移的过滤，过滤掉上述样例中红色圈中的轨迹，重新测试简单场景希望能继续提高准确率。
+
+后续计划：
+
+1. 对简单场景进行轨迹质量的提升后重新测试。
+2. 对于复杂场景中的平行道路使用频域+注意力机制提升准确率。
